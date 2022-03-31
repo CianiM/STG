@@ -203,6 +203,26 @@ src_BC = {}
 # No-slip wall
 #
 
+Src_BC_Symm_conv ={}
+
+Fx = {'rho' : ' rho*u ',
+       'u'  : ' rho*u*u + p ',
+       'v'  : ' rho*u*v ',
+       'et' : ' (rho*et+ p)*u ',
+       'nut': ' rho*u*nut-sigmaI*(visc+rho*nut)*{ nut }_1x '}
+
+
+for key in Fx.keys():
+      Src_BC_Symm_conv[key] = ' [ ' + Fx[key] + ' ]_1x '
+
+Src_BC_Symm_dif={}
+
+Fx= { 'u'  : '  ',
+      'v'  : ,
+      'et' : ,
+      }
+
+
 src_BC['j1'] = { 'u' : '' }
 
 
