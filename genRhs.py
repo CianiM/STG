@@ -1,45 +1,76 @@
 import sys
 import re
 import numpy as np
-from genKer import genrk3, genrk3update, genFilter, genBC, append_Rhs
+from genKer import  genrk3, genrk3update, genFilter, genBC, append_Rhs
 import os 
 
-# Set working precision
 wp = 'float64'
   
-from equations import *
+from  equations import *
 
 # Set install path (needed by genKer)
 instpath = os.environ['INSTALLPATH']
 incPATH  = instpath+'/src_for/includes/gen/'
 
-# Specify global number of halos
-hlo_glob = 5
+hlo_glob = 4
 
 def main():
       
     from genKer import rhs_info    
-    rhs = rhs_info()
+    #rhs = rhs_info(dim,wp,hlo_glob,incPATH,varsolved,varname, 
+    #               consvar=consvar,varstored=varstored,varloc=varloc,varbc=varbc,
+    #               coefficients=coefficients)
+    rhs=rhs_info()
 
 # Generate LHS:
     genrk3(len(varsolved)      ,rhs=rhs) 
     genrk3update(len(varsolved),rhs=rhs)
 
 # Generate RHS:
-    append_Rhs(divF, 5,4, rhsname, vnamesrc_divF, update=False,rhs=rhs,stored=True)                           
+    append_Rhs(Src_conv, 5, 4, rhsname, locname_conv, update=False,rhs=rhs)
+    append_Rhs(Src_dif , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)   
+    #append_Rhs(Src_SA , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs)             
+    #append_Rhs(divF, 9,8, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
+    #append_Rhs(divF, 7,6, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
+    #append_Rhs(divF, 5,4, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
+    #append_Rhs(divF, 3,2, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
+
 # Generate Filters (if required):      
-    genFilter(11,10, len(varsolved),rhs=rhs)
+    genFilter(5,4, len(varsolved),rhs=rhs)
 
-# Progressive stencil/order adjustement from domain to boundary 
-    genBC(divF,3,2, rhsname , vnamesrc_divF, update=False,rhs=rhs)
+# Generate BCs:
+    genBC(Src_conv ,5,4,rhsname , locname_conv, update=False,rhs=rhs,stored=False)
+    genBC(Src_dif  ,3 ,2 ,rhsname , locname_dif , update=True ,rhs=rhs,stored=True)
+    
+    # j1
+    genBC(src_BC['j1']  ,3,2,rhsname , locname_bc, setbc=[True,{'Wall_BC':{'j1':['q']}}]  , update=False,rhs=rhs)
 
-# Boundary conditions on d(q)/dt 
-    #i1
-    genBC(src_phybc_wave_i1,3,2,rhsname , vnamesrc_divF, setbc=[True,{'char':{'i1':['rhs']}}]  , update=False,rhs=rhs)
-    #imax
-    genBC(src_phybc_wave_imax,3,2,rhsname ,vnamesrc_divF, setbc=[True,{'char':{'imax':['rhs']}}]  , update=False,rhs=rhs)
 
-    # Extract RHS info:
+    # genBC(Src_phybc_q1  ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'j1':['q'  ]}}]  , update=False,rhs=rhs)
+
+    # # jmax
+    # genBC(Src_phybc_rhs ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['rhs']}}], update=False,rhs=rhs)
+    # genBC(Src_phybc_qmax,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['q'  ]}}], update=False,rhs=rhs)
+    
+    
+#    # j1
+#    genBC(Save_eqns['Src_conv'] ,11,10,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'j1':['rhs']}}]  , update=False,rhs=rhs)
+#    # genBC(Src_phybc_q1  ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'j1':['q'  ]}}]  , update=False,rhs=rhs)
+#
+#    # jmax
+#    genBC(Save_eqns['Src_conv'] ,11,10,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['rhs']}}], update=False,rhs=rhs)
+#    # genBC(Src_phybc_qmax,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['q'  ]}}], update=False,rhs=rhs)
+
+    # i1
+    # genBC(Src_phybc_rhs ,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'i1':['rhs']}}]  , update=False,rhs=rhs)
+    # genBC(Src_phybc_q1  ,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'i1':['q'  ]}}]  , update=False,rhs=rhs)
+    # imax
+    # genBC(Src_phybc_rhs ,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'imax':['rhs']}}], update=False,rhs=rhs)      
+    # genBC(Src_phybc_qmax,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'imax':['q'  ]}}], update=False,rhs=rhs)      
+
+
+
+# Extract RHS info:
     rhs.export()
 
 if __name__ == '__main__':
