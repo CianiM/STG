@@ -41,13 +41,13 @@ consvar      = [2,3,4,5] # are conservative variables
 # derived local variables /////////////////////////////////////////////////////
 
 # -- Two divergence forms for inside and outside first derivative
-divops  = ' [u]_1x + deltayI*( [v]_1y )  '
-ddivops = ' {u}_1x + deltayI*( {v}_1y )  '
+divops  = ' deltaxI*( [u]_1x ) + deltayI*( [v]_1y )  '
+ddivops = ' deltaxI*( {u}_1x ) + deltayI*( {v}_1y )  '
 
 # -- Srain tensor
-S =   { 'uu' : ' [u]_1x ',
-        'uv' : ' 0.5_wp*( deltayI*( [u]_1y ) + [v]_1x ) ',
-        'vu' : ' 0.5_wp*( [v]_1x + deltayI*( [u]_1y ) ) ',
+S =   { 'uu' : ' deltaxI*( [u]_1x )',
+        'uv' : ' 0.5_wp*( deltayI*( [u]_1y ) + deltaxI*( [v]_1x ) ) ',
+        'vu' : ' 0.5_wp*( deltaxI*( [v]_1x ) + deltayI*( [u]_1y ) ) ',
         'vv' : ' deltayI*( [v]_1y ) ' }
 #s=''
 
@@ -66,8 +66,8 @@ varloc       = {'p': 'gamma_m1*rho*(e)',
                 'ft2': '( Ct3*exp(-Ct4*chi**2) )',
                 'fw' : '( gg*( 1+Cw3**6 )/( gg**6+Cw3**6) ) ',
                 'gg' : '( rr + Cw2*( rr**6-rr ) )',
-                'rr' : '( nut/(SS*k**2*d**2) )',
-                'SS' : '( stemp+nut/(k**2*d**2) )',
+                'rr' : '( nut/(SS*k**2*eta**2) )',
+                'SS' : '( stemp+nut/(k**2*eta**2) )',
                 #'stemp' : s, 
                 'T': 'CvInv*(e)',
                 'symm':' ( sign(1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) ) ' ,
@@ -79,14 +79,20 @@ varstored   = { 'd'  : {'symb' : "d" ,
                 'eta' : {'symb' : "eta" ,
                                   'ind' : 2 ,
                                   'static' : True},
+                'ksi' : {'symb' : "ksi" ,
+                                  'ind' :3,
+                                  'static' : True},
                 'stemp' : {'symb' : "stemp",
-                                     'ind' : 3,
-                                     'static' : True},
-                'deltayI' : {'symb' : '1.0_wp /(  [ eta ]_1y ) ' ,
-                                     'ind' : 4 ,
-                                     'static' : True},
+                                    'ind' : 4,
+                                    'static' : True},
+                'deltaxI' : {'symb' : '1.0_wp /( [ ksi ]_1x )' ,
+                                      'ind' : 5,
+                                      'static' : True},
+                'deltayI' : {'symb' : '1.0_wp /(  [ eta ]_1y )' ,
+                                      'ind' : 6 ,
+                                      'static' : True},
                 'symm'    : {'symb' : '( sign(1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) )',
-                                      'ind': 5,
+                                      'ind': 7,
                                       'static': True}} 
 
 # names to give to the constructor ////////////////////////////////////////////
@@ -125,7 +131,7 @@ Fx = {'rho' : 'rho*u         ',
       'u'   : 'rho*u*u  + p  ',
       'v'   : 'rho*u*v       ',
       'et'  : '(rho*et + p)*u ',
-      'nut' : 'rho*u*nut-sigmaI*(visc+rho*nut)*{ nut }_1x ' }
+      'nut' : 'rho*u*nut-sigmaI*(visc+rho*nut)*( { nut }_1x )*deltaxI ' }
 
 Fy = {'rho' : 'rho*v         ',
       'u'   : 'rho*v*u       ', 
@@ -136,7 +142,7 @@ Fy = {'rho' : 'rho*v         ',
 Src_conv={}
 
 for key in Fx.keys():
-    Src_conv[key]= '[ ' +Fx[key] + ' ]_1x' + ' + ' + 'deltayI*( [ '+Fy[key]+ ' ]_1y ) '
+    Src_conv[key]= 'deltaxI*( [ ' +Fx[key] + ' ]_1x )' + ' + ' + 'deltayI*( [ '+Fy[key]+ ' ]_1y ) '
 
  
 
@@ -170,17 +176,17 @@ for key in Fx.keys():
 ######################################
 ##Navier-Stokes Diffusive terms only## 
 ######################################
-Fx = {'u'   : ' - visc_t *( 2.0_wp * {u}_1x - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )',
-      'v'   : ' - visc_t *( deltayI*( {u}_1y ) + {v}_1x )', 
+Fx = {'u'   : ' - visc_t *( 2.0_wp * deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )',
+      'v'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ) )', 
       
-      'et'  : ' - kappa*( {T}_1x ) '
-              ' - u*(visc_t *( 2.0_wp * {u}_1x - 2.0_wp/3.0_wp * ( '+ ddivops +'  )))'
-              ' - v*(visc_t *( deltayI*( {u}_1y ) + {v}_1x ))'}
+      'et'  : ' - kappa*deltaxI*( {T}_1x ) '
+              ' - u*(visc_t *( 2.0_wp *deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  )))'
+              ' - v*(visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x )))'}
 
-Fy = {'u'   : ' - visc_t *( deltayI*( {u}_1y ) + {v}_1x )  ',
+Fy = {'u'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ))  ',
       'v'   : ' - visc_t *( 2.0_wp * deltayI*( {v}_1y ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )', 
       'et'  : ' - kappa*deltayI*( {T}_1y )'
-              ' - u*(visc_t *( deltayI*( {u}_1y ) + {v}_1x ))'
+              ' - u*(visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x )))'
               ' - v*(visc_t *( 2.0_wp * deltayI*( {v}_1y ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  )))'}
        
 # -- Divergence formulation
@@ -188,7 +194,7 @@ Fy = {'u'   : ' - visc_t *( deltayI*( {u}_1y ) + {v}_1x )  ',
 Src_dif  = {}
 
 for key in Fx.keys():
-    Src_dif[key]= ' [ ' + Fx[key] +' ]_1x ' + ' + ' + 'deltayI * [ '+ Fy[key]  +' ]_1y '
+    Src_dif[key]= 'deltaxI*( [ ' + Fx[key] +' ]_1x )' + ' + ' + 'deltayI *( [ '+ Fy[key]  +' ]_1y )'
 
 #Src_dif  = {'u'   : '[ '+Fx['u']  +' ]_1x' + ' + ' + '[ '+Fy['u']  +' ]_1y' + ' + ' + '[ '+Fz['u']  +' ]_1z ',
 #            'v'   : '[ '+Fx['v']  +' ]_1x' + ' + ' + '[ '+Fy['v']  +' ]_1y' + ' + ' + '[ '+Fz['v']  +' ]_1z ',
@@ -196,61 +202,77 @@ for key in Fx.keys():
 
 
 
-Src_dif['nut'] = ' -Cb2*sigmaI*( ( [ rho*nut ]_1x )*( [ nut ]_1x ) + (deltayI)**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/d**2 '
+Src_dif['nut'] = ' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x ) + (deltayI)**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/eta**2 '
 #Src_SA = {'nut':' -Cb2*sigmaI*( ( [ rho*nut ]_1x )*( [ nut ]_1x )+ deltayI**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) - Cb1*(1-ft2)*( SS )*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/d**2 '}
 
 
-####################### 
-##Boundary Conditions##
-#######################
+########################################################################################################## 
+#########################################BOUNDARY CONDITIONS##############################################
+##########################################################################################################
 
-src_BC = {}
+##Characteristic equations##
+
+from CharsForConsLaw import characteristics
+
+Char={}
+
+
 
 ##--Symm--##
+
 Src_BC_Symm_conv ={}
 
 Fx = {'rho' : ' rho*u ',
        'u'  : ' rho*u*u + p ',
        'v'  : ' rho*u*v ',
        'et' : ' (rho*et+ p)*u ',
-       'nut': ' rho*u*nut-sigmaI*(visc+rho*nut)*{ nut }_1x '}
+       'nut': ' rho*u*nut-sigmaI*(visc+rho*nut)*( { nut }_1x )*deltaxI'}
 
 
 for key in Fx.keys():
-      Src_BC_Symm_conv[key] = ' [ ' + Fx[key] + ' ]_1x '
+      Src_BC_Symm_conv[key] = 'deltaxI*( [ ' + Fx[key] + ' ]_1x )'
 
 Src_BC_Symm_dif={}
 
-Fx = { 'u'  : ' -4.0_wp/3.0_wp*visc_t*( {u}_1x )',
-       'v'  : ' -visc_t*( {v}_1x ) ',
-       'et' : ' -4.0_wp/3.0_wp*visc_t*( {u}_1x )*u -visc_t*( {v}_1x )*v -kappa*{T}_1x'
+Fx = { 'u'  : ' -4.0_wp/3.0_wp*visc_t*( {u}_1x )*deltaxI',
+       'v'  : ' -visc_t*( {v}_1x )*deltaxI ',
+       'et' : ' -4.0_wp/3.0_wp*visc_t*( {u}_1x )*deltaxI*u -visc_t*( {v}_1x )*deltaxI*v -kappa*( {T}_1x )*deltaxI'
       }
 for key in Fx.keys():
-      Src_BC_Symm_dif[key] = ' [ ' + Fx[key] +' ]_1x '
+      Src_BC_Symm_dif[key] = 'deltaxI*( [ ' + Fx[key] +' ]_1x )'
 
 ##--Wall--##
-Src_BC_Wall_conv = { 'rho' : ' rho*( [v]_1y )*deltayI ',
+Src_BC_Wall={}
+
+Src_BC_Wall_conv = { 'rho' : ' rho*( [v]_1y )*deltayI',
                      'et'  : ' ( rho*et+p )* ( [v]_1y )*deltayI'}
 
 Src_BC_Wall_dif = { 'et'  : ' (-visc_t*( [u]_1y )*( [u]_1y ) - 4.0_wp/3.0_wp*visc_t*( [v]_1y )*( [v]_1y ) -kappa*[T]_2y )*deltayI**2 -kappa*[T]_2x'}
+
+
 ##--Building boundary conditions--##
 Src_BC_conv={}
 Src_BC_dif={}
 ##--Boundary conditions for j1--
 Src_BC_conv['j1'] = {}
 Src_BC_dif['j1'] = {}
+
 for key in Src_BC_Symm_conv.keys():
       Src_BC_conv['j1'][key]= '( '+Src_BC_Symm_conv[key]+' )*symm '+ '( ' + Src_BC_Wall_conv[key]+' )*wall'
       Src_BC_dif['j1'][key] = '( '+Src_BC_Symm_dif[key] +' )*symm '+ '( ' + Src_BC_Wall_dif[key] +' )*wall'
 
 ##--Boundary conditions for jmax--##
+
+
+######
 Src_BC_conv['jmax']={}
 Src_BC_dif['jmax']={}
 for key in Src_BC_Symm_conv.keys():
       Src_BC_conv['jmax'][key]= Src_BC_Symm_conv[key]
       Src_BC_dif['jmax'][key]= Src_BC_Symm_dif[key]
 
-src_BC['j1'] = { 'u' : ' symm*u ',
+Src_BC ={}
+Src_BC['j1'] = { 'u' : ' symm*u ',
                  'v' : '0.0_wp',
                  'nut':' summ*nut' }
 ##--Boundary conditions for i1--##
