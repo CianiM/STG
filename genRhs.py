@@ -46,12 +46,12 @@ def main():
     
     #--j1
     genBC(Src_BC['j1']  ,3,2,rhsname , locname_bc, setbc=[True,{'Wall_BC':{'j1':['q']}}]  , update=False,rhs=rhs)
-    genBC(Src_BC_conv['j'] , 3,2,rhsname, locname_bc_conv, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}],  update=False, rhs=rhs )
+    genBC(Src_BC_conv['j1'] , 3,2,rhsname, locname_bc_conv, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}],  update=False, rhs=rhs )
     genBC(Src_BC_dif['j1'], 3,2, rhsname, locname_bc_dif, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}]], update=False, rhs=rhs )
 
 
     #--jmax
-    genBC(Src_BC_)
+    #genBC(Src_BC_)
     # genBC(Src_phybc_rhs ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['rhs']}}], update=False,rhs=rhs)
     # genBC(Src_phybc_qmax,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['q'  ]}}], update=False,rhs=rhs)
     
