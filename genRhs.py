@@ -28,8 +28,8 @@ def main():
 
 # Generate RHS:
     append_Rhs(Src_conv, 5, 4, rhsname, locname_conv, update=False,rhs=rhs)
-    append_Rhs(Src_dif , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)   
-    #append_Rhs(Src_SA , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs)             
+    append_Rhs(Src_dif , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)  
+    #append_Rhs(Src_SA , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)                        
     #append_Rhs(divF, 9,8, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
     #append_Rhs(divF, 7,6, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
     #append_Rhs(divF, 5,4, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
