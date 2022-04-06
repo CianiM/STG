@@ -1,7 +1,7 @@
 # =============================================================================
 # 3D navier stokes equations  
 # =============================================================================
-
+import sympy as sym
 # number of dimensions
 dim = 2 
 
@@ -121,7 +121,18 @@ locname_bc  = {'rho': 'bc_rho',
                'u'  : 'bc_u',
                'v'  : 'bc_v',
                'et' : 'bc_et  ',
-               'nut': 'bc_nut '}                
+               'nut': 'bc_nut '}   
+locname_bc_conv= { 'rho' : 'conv_rho',
+                   'u'   : 'conv_u' ,
+                   'v'   : 'conv_v',
+                   'et'  : 'conv_et',
+                   'nut' : 'conv_nut' }
+
+locname_bc_dif = { 'rho' : 'dif_rho',
+                   'u'   : 'dif_u',
+                   'v'   : 'dif_v',
+                   'et'  : 'dif_et',
+                   'nut' : 'dif_nut' }             
 
 # RHS terms ///////////////////////////////////////////////////////////////////
 
@@ -174,7 +185,9 @@ for key in Fx.keys():
 #                   '+rho*et*( '+divops+') ) + [p*u]_1x + [p*v]_1y + [p*w]_1z '}
 
 ######################################
-##Navier-Stokes Diffusive terms only## 
+#                                    #
+# Navier-Stokes Diffusive terms only # 
+#                                    #
 ######################################
 Fx = {'u'   : ' - visc_t *( 2.0_wp * deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )',
       'v'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ) )', 
@@ -207,16 +220,8 @@ Src_dif['nut'] = ' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x ) 
 
 
 ########################################################################################################## 
-#########################################BOUNDARY CONDITIONS##############################################
+#----------------------------------------BOUNDARY CONDITIONS---------------------------------------------#
 ##########################################################################################################
-
-##Characteristic equations##
-
-from CharsForConsLaw import characteristics
-
-Char={}
-
-
 
 ##--Symm--##
 
@@ -241,6 +246,8 @@ Fx = { 'u'  : ' -4.0_wp/3.0_wp*visc_t*( {u}_1x )*deltaxI',
 for key in Fx.keys():
       Src_BC_Symm_dif[key] = 'deltaxI*( [ ' + Fx[key] +' ]_1x )'
 
+Src_BC_Symm_dif['nut']=' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x ) ) - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/eta**2 '
+
 ##--Wall--##
 Src_BC_Wall={}
 
@@ -258,13 +265,21 @@ Src_BC_conv['j1'] = {}
 Src_BC_dif['j1'] = {}
 
 for key in Src_BC_Symm_conv.keys():
-      Src_BC_conv['j1'][key]= '( '+Src_BC_Symm_conv[key]+' )*symm '+ '( ' + Src_BC_Wall_conv[key]+' )*wall'
-      Src_BC_dif['j1'][key] = '( '+Src_BC_Symm_dif[key] +' )*symm '+ '( ' + Src_BC_Wall_dif[key] +' )*wall'
+      Src_BC_conv['j1'][key]='( '+ Src_BC_Symm_conv[key] + ' )*symm'
+
+for key in Src_BC_Symm_dif.keys():
+      Src_BC_dif['j1'][key]= '( '+ Src_BC_Symm_dif + ' )*symm'
+
+for key in Src_BC_Wall_conv.keys():
+      Src_BC_conv['j1'][key] = Src_BC_conv['j1'][key] + ' + ( '+ Src_BC_Wall_conv[key]+' )*wall'
+
+Src_BC_dif['j1']['et']= Src_BC_dif['j1']['et'] + ' + ( '+Src_BC_Wall_dif['et']+' )*wall'
+#for key in Src_BC_Symm_conv.keys():
+#      Src_BC_conv['j1'][key]= '( '+Src_BC_Symm_conv[key]+' )*symm '+ '( ' + Src_BC_Wall_conv[key]+' )*wall'
+#      Src_BC_dif['j1'][key] = '( '+Src_BC_Symm_dif[key] +' )*symm '+ '( ' + Src_BC_Wall_dif[key] +' )*wall'
 
 ##--Boundary conditions for jmax--##
 
-
-######
 Src_BC_conv['jmax']={}
 Src_BC_dif['jmax']={}
 for key in Src_BC_Symm_conv.keys():
@@ -275,8 +290,41 @@ Src_BC ={}
 Src_BC['j1'] = { 'u' : ' symm*u ',
                  'v' : '0.0_wp',
                  'nut':' summ*nut' }
-##--Boundary conditions for i1--##
+##--Boundary conditions for the inlet:i1--##
 
+Src_BC['i1'] = { 'u' : 'U0',
+                 'v' : '0.0_wp',
+                 'T' : 'T0',  
+                 'nut': '0.0_wp'}
+
+##--Boundary conditions for the outlet:imax--##
+
+from CharsForConsLaw import characteristics
+
+Char={}
+Char=characteristics('Euler')
+
+x,y,t=sym.symbols(['x','y','t'],Real=True)
+rho,u,v,et,p=sym.symbols(['rho','u','v','et','p'],Real=True)
+rhou ,rhov ,rhow ,rhoet = sym.symbols(['rhou' ,'rhov' ,'rhow' ,'rhoet'],Real=True)
+gamma=sym.symbol('gamma')
+rho = sym.Function('rho')(x,y,t)
+u = sym.Function('u')(x,y,t)
+v = sym.Function('v')(x,y,t)
+p = sym.Function('p')(x,y,t)
+
+p=(gamma-1)*(rho*et-(rho*u)**2/(2*rho))
+
+Q=sym.Matrix([[rho],
+             [u],
+             [v],
+             [et]])
+
+Q_CS=sym.Matrix([[rho],
+                [rho*u],
+                [rho*v],
+                [rho*et]])
+M=Q_CS.jacobian(Q)
 
 
 
@@ -291,4 +339,4 @@ varbc = { 'u_wall' : {'symb'  : ' u_wall ',
           'nut_wall':{'symb'  : 'nut_wall ',
                       'ind'   : 3 ,
                       'static': False,
-                      'face'  : 'j1'}}          
+                      'face'  : 'j1'}}           
