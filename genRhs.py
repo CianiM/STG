@@ -31,48 +31,28 @@ def main():
 # Generate RHS:
     append_Rhs(Src_conv, 5, 4, rhsname, locname_conv, update=False,rhs=rhs)
     append_Rhs(Src_dif , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)  
-    #append_Rhs(Src_SA , 3 ,2 , rhsname, locname_dif , update=True ,rhs=rhs,stored=True)                        
-    #append_Rhs(divF, 9,8, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
-    #append_Rhs(divF, 7,6, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
-    #append_Rhs(divF, 5,4, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
-    #append_Rhs(divF, 3,2, rhsname, vnamesrc_divFx, update=False,rhs=rhs,stored=True)                           
-
+                   
 # Generate Filters (if required):      
 #    genFilter(5,4, len(varsolved),rhs=rhs)     #No filter required
 
 # Generate BCs:
     genBC(Src_conv ,5,4,rhsname , locname_conv, update=False,rhs=rhs,stored=False)
     genBC(Src_dif  ,3 ,2 ,rhsname , locname_dif , update=True ,rhs=rhs,stored=True)
-    
     #--j1
-    genBC(Src_BC['j1']  ,3,2,rhsname , locname_bc, setbc=[True,{'Wall_BC':{'j1':['q']}}]  , update=False,rhs=rhs)
+    genBC(Src_phyBC['j1']  ,3,2,rhsname , locname_bc, setbc=[True,{'Wall_BC':{'j1':['q']}}]  , update=False,rhs=rhs)
     genBC(Src_BC_conv['j1'] , 3,2,rhsname, locname_bc_conv, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}],  update=False, rhs=rhs )
-    genBC(Src_BC_dif['j1'], 3,2, rhsname, locname_bc_dif, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}]], update=False, rhs=rhs )
-
-
+    genBC(Src_BC_dif['j1'], 3,2, rhsname, locname_bc_dif, setbc=[True, {'Symm_Wall':{'j1':['rhs']}}], update=True, rhs=rhs )
     #--jmax
-    #genBC(Src_BC_)
-    # genBC(Src_phybc_rhs ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['rhs']}}], update=False,rhs=rhs)
-    # genBC(Src_phybc_qmax,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['q'  ]}}], update=False,rhs=rhs)
+    genBC(Src_BC_conv['jmax'], 3,2,rhsname, locname_bc_conv, setbc=[True,{'Non_reflective':{'jmax':['rhs']}}], update=False, rhs=rhs )
+    genBC(Src_BC_dif['jmax'], 3,2,rhsname, locname_bc_dif, setbc=[True,{'Non_reflective':{'jmax':['rhs']}}], update=False, rhs=rhs )
+    #--i1
+    genBC(Src_phyBC['i1'],3,2, rhsname, locname_bc, set_bc=[True,{'Inlet':{'i1':['q']}}],update=False, rhs=rhs)
+    genBC(Src_BC_conv['i1'] , 3,2,rhsname, locname_bc_conv, setbc=[True, {'Subsonic_inflow':{'i1':['rhs']}}],  update=False, rhs=rhs )
+    genBC(Src_BC_dif['i1'], 3,2, rhsname, locname_bc_dif, setbc=[True, {'Subsonic_inflow':{'i1':['rhs']}}], update=True, rhs=rhs )    
+    #--imax
+    genBC(Src_BC_conv['imax'] , 3,2,rhsname, locname_bc_conv, setbc=[True, {'Costant_pressure':{'imax':['rhs']}}],  update=False, rhs=rhs )
+    genBC(Src_BC_dif['imax'], 3,2, rhsname, locname_bc_dif, setbc=[True, {'Costant_pressure':{'imax':['rhs']}}], update=True, rhs=rhs )  
     
-    
-#    # j1
-#    genBC(Save_eqns['Src_conv'] ,11,10,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'j1':['rhs']}}]  , update=False,rhs=rhs)
-#    # genBC(Src_phybc_q1  ,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'j1':['q'  ]}}]  , update=False,rhs=rhs)
-#
-#    # jmax
-#    genBC(Save_eqns['Src_conv'] ,11,10,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['rhs']}}], update=False,rhs=rhs)
-#    # genBC(Src_phybc_qmax,5,4,rhsname , vnamesrc_bc, setbc=[True,{'wall':{'jmax':['q'  ]}}], update=False,rhs=rhs)
-
-    # i1
-    # genBC(Src_phybc_rhs ,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'i1':['rhs']}}]  , update=False,rhs=rhs)
-    # genBC(Src_phybc_q1  ,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'i1':['q'  ]}}]  , update=False,rhs=rhs)
-    # imax
-    # genBC(Src_phybc_rhs ,5,,4,rhsname , locname_bc, setbc=[True,{'wall':{'imax':['rhs']}}], update=False,rhs=rhs)      
-    # genBC(Src_phybc_qmax,5,4,rhsname , locname_bc, setbc=[True,{'wall':{'imax':['q'  ]}}], update=False,rhs=rhs)      
-
-
-
 # Extract RHS info:
     rhs.export()
 

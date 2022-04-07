@@ -1,6 +1,7 @@
 # =============================================================================
 # 3D navier stokes equations  
 # =============================================================================
+from re import L
 import sympy as sym
 # number of dimensions
 dim = 2 
@@ -23,7 +24,9 @@ coefficients = {'visc'       : 1,
                 'Ct2'        : 15,
                 'Ct3'        : 16,
                 'Ct4'        : 17,
-                'sigmaI'     : 18
+                'sigmaI'     : 18,
+                'esse'       : 19,
+                'L_ref'      : 20
                 }
 
 # unknowns to march in time ///////////////////////////////////////////////////
@@ -70,7 +73,7 @@ varloc       = {'p': 'gamma_m1*rho*(e)',
                 'SS' : '( stemp+nut/(k**2*eta**2) )',
                 #'stemp' : s, 
                 'T': 'CvInv*(e)',
-                'symm':' ( sign(1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) ) ' ,
+                #'symm':'( ( sign( 1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) ) )' ,
                 'wall':' dabs( 1-symm )'}
 
 varstored   = { 'd'  : {'symb' : "d" ,
@@ -91,7 +94,7 @@ varstored   = { 'd'  : {'symb' : "d" ,
                 'deltayI' : {'symb' : '1.0_wp /(  [ eta ]_1y )' ,
                                       'ind' : 6 ,
                                       'static' : True},
-                'symm'    : {'symb' : '( sign(1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) )',
+                'symm'    : {'symb' : '( ( sign(1.0_wp, ksi) - 1.0_wp ) /(-2.0_wp) )',
                                       'ind': 7,
                                       'static': True}} 
 
@@ -156,39 +159,12 @@ for key in Fx.keys():
     Src_conv[key]= 'deltaxI*( [ ' +Fx[key] + ' ]_1x )' + ' + ' + 'deltayI*( [ '+Fy[key]+ ' ]_1y ) '
 
  
-
-# -- Conservative formulation
-
-#Src_conv = {'rho' : '[ '+Fx['rho']+' ]_1x' + ' + ' + '[ '+Fy['rho']+' ]_1y' + ' + ' + '[ '+Fz['rho']+' ]_1z ',
-#            'u'   : '[ '+Fx['u']  +' ]_1x' + ' + ' + '[ '+Fy['u']  +' ]_1y' + ' + ' + '[ '+Fz['u']  +' ]_1z ',
-#            'v'   : '[ '+Fx['v']  +' ]_1x' + ' + ' + '[ '+Fy['v']  +' ]_1y' + ' + ' + '[ '+Fz['v']  +' ]_1z ',
-#            'w'   : '[ '+Fx['w']  +' ]_1x' + ' + ' + '[ '+Fy['w']  +' ]_1y' + ' + ' + '[ '+Fz['w']  +' ]_1z ',
-#            'et' : ' [ '+Fx['et'] +' ]_1x' + ' + ' + '[ '+Fy['et'] +' ]_1y' + ' + ' + '[ '+Fz['et'] +' ]_1z ',
-#            'nut': ' [ '+Fx['nut']+' ]_1x' + ' + ' + '[ '+Fy['nut']+' ]1_y' + ' + ' + '[ '+Fz['nut']+' ]1_z '}
-
-# -- Skew symmetric formulation
-
-#Src_skew = {'rho' : '0.5_wp*( [rho*u]_1x + [rho*v]_1y + [rho*w]_1z '
-#                   '+   u*[rho]_1x + v*[rho]_1y + w*[rho]_1z '
-#                   '+ rho*( '+divops+' ) )',
-#        'u'   : '0.5_wp*( [rho*u*u]_1x + [rho*u*v]_1y + [rho*u*w]_1z '
-#                   '+   u*[rho*u]_1x + v*[rho*u]_1y + w*[rho*u]_1z '
-#                   '+rho*u*( '+divops+' ) ) + [p]_1x ',
-#        'v'   : '0.5_wp*( [rho*u*v]_1x + [rho*v*v]_1y + [rho*v*w]_1z '
-#        '+   u*[rho*v]_1x + v*[rho*v]_1y + w*[rho*v]_1z '
-#                   '+rho*v*( '+divops+' ) ) + [p]_1y ',
-#        'w'   : '0.5_wp*( [rho*w*u]_1x + [rho*w*v]_1y + [rho*w*w]_1z '
-#                   '+   u*[rho*w]_1x + v*[rho*w]_1y + w*[rho*w]_1z '
-#                   '+rho*w*( '+divops+' ) ) + [p]_1z ',
-#        'et'  : '0.5_wp*( [rho*et*u]_1x + [rho*et*v]_1y + [rho*et*w]_1z '
-#                   '+   u*[rho*et]_1x + v*[rho*et]_1y + w*[rho*et]_1z '
-#                   '+rho*et*( '+divops+') ) + [p*u]_1x + [p*v]_1y + [p*w]_1z '}
-
 ######################################
 #                                    #
 # Navier-Stokes Diffusive terms only # 
 #                                    #
 ######################################
+
 Fx = {'u'   : ' - visc_t *( 2.0_wp * deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )',
       'v'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ) )', 
       
@@ -207,23 +183,22 @@ Fy = {'u'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ))  ',
 Src_dif  = {}
 
 for key in Fx.keys():
-    Src_dif[key]= 'deltaxI*( [ ' + Fx[key] +' ]_1x )' + ' + ' + 'deltayI *( [ '+ Fy[key]  +' ]_1y )'
+    Src_dif[key]= 'deltaxI*( [ ' + Fx[key] +' ]_1x )' + ' + ' + 'deltayI *( [ '+ Fy[key]  +' ]_1y ) '
 
-#Src_dif  = {'u'   : '[ '+Fx['u']  +' ]_1x' + ' + ' + '[ '+Fy['u']  +' ]_1y' + ' + ' + '[ '+Fz['u']  +' ]_1z ',
-#            'v'   : '[ '+Fx['v']  +' ]_1x' + ' + ' + '[ '+Fy['v']  +' ]_1y' + ' + ' + '[ '+Fz['v']  +' ]_1z ',
-#            'et' : ' [ '+Fx['et'] +' ]_1x' + ' + ' + '[ '+Fy['et'] +' ]_1y' + ' + ' + '[ '+Fz['et'] +' ]_1z '}
-
-
-
-Src_dif['nut'] = ' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x ) + (deltayI)**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/eta**2 '
-#Src_SA = {'nut':' -Cb2*sigmaI*( ( [ rho*nut ]_1x )*( [ nut ]_1x )+ deltayI**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) - Cb1*(1-ft2)*( SS )*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/d**2 '}
+Src_dif['nut'] = ' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x )+ (deltayI)**2*( [ rho*nut ]_1y )*( [ nut ]_1y ) ) \
+                  - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/eta**2 '
 
 
 ########################################################################################################## 
 #----------------------------------------BOUNDARY CONDITIONS---------------------------------------------#
 ##########################################################################################################
 
-##--Symm--##
+
+######################################
+#                                    #
+#----------Symmetry, j1--------------#  
+#                                    #
+######################################
 
 Src_BC_Symm_conv ={}
 
@@ -248,7 +223,11 @@ for key in Fx.keys():
 
 Src_BC_Symm_dif['nut']=' -Cb2*sigmaI*( (deltaxI)**2*( [ rho*nut ]_1x )*( [ nut ]_1x ) ) - Cb1*(1-ft2)*SS*rho*nut + (Cw1*fw-Cb1/k**2*ft2)*rho*nut**2/eta**2 '
 
-##--Wall--##
+######################################
+#                                    #
+#-------------Wall, j1---------------#  
+#                                    #
+######################################
 Src_BC_Wall={}
 
 Src_BC_Wall_conv = { 'rho' : ' rho*( [v]_1y )*deltayI',
@@ -268,38 +247,43 @@ for key in Src_BC_Symm_conv.keys():
       Src_BC_conv['j1'][key]='( '+ Src_BC_Symm_conv[key] + ' )*symm'
 
 for key in Src_BC_Symm_dif.keys():
-      Src_BC_dif['j1'][key]= '( '+ Src_BC_Symm_dif + ' )*symm'
+      Src_BC_dif['j1'][key]= '( '+ Src_BC_Symm_dif[key] + ' )*symm'
 
 for key in Src_BC_Wall_conv.keys():
       Src_BC_conv['j1'][key] = Src_BC_conv['j1'][key] + ' + ( '+ Src_BC_Wall_conv[key]+' )*wall'
 
 Src_BC_dif['j1']['et']= Src_BC_dif['j1']['et'] + ' + ( '+Src_BC_Wall_dif['et']+' )*wall'
+
+##--Physical BC
+Src_phyBC = {}
+Src_phyBC['j1'] = { 'u' : ' symm*u ',
+                    'v' : '0.0_wp',
+                    'nut':' summ*nut' }
+
+##--Symmetric boundary conditions for jmax--##
+
+#...
+#Src_BC_conv['jmax']={}
+#Src_BC_dif['jmax']={}
 #for key in Src_BC_Symm_conv.keys():
-#      Src_BC_conv['j1'][key]= '( '+Src_BC_Symm_conv[key]+' )*symm '+ '( ' + Src_BC_Wall_conv[key]+' )*wall'
-#      Src_BC_dif['j1'][key] = '( '+Src_BC_Symm_dif[key] +' )*symm '+ '( ' + Src_BC_Wall_dif[key] +' )*wall'
+#      Src_BC_conv['jmax'][key]= Src_BC_Symm_conv[key]
+#for key in Src_BC_Symm_dif.keys():
+#      Src_BC_dif['jmax'][key]= Src_BC_Symm_dif[key]
+#...
 
-##--Boundary conditions for jmax--##
 
-Src_BC_conv['jmax']={}
-Src_BC_dif['jmax']={}
-for key in Src_BC_Symm_conv.keys():
-      Src_BC_conv['jmax'][key]= Src_BC_Symm_conv[key]
-      Src_BC_dif['jmax'][key]= Src_BC_Symm_dif[key]
 
-Src_BC ={}
-Src_BC['j1'] = { 'u' : ' symm*u ',
-                 'v' : '0.0_wp',
-                 'nut':' summ*nut' }
-##--Boundary conditions for the inlet:i1--##
 
-Src_BC['i1'] = { 'u' : 'U0',
-                 'v' : '0.0_wp',
-                 'T' : 'T0',  
-                 'nut': '0.0_wp'}
+######################################
+#                                    #
+#----Inlet i1, Subsonic inflow-------#  
+#                                    #
+######################################
 
-##--Boundary conditions for the outlet:imax--##
 
+##-- Charactertistics --##
 from CharsForConsLaw import characteristics
+from genNSBC import sympy2dNami
 
 Char={}
 Char=characteristics('Euler')
@@ -307,7 +291,7 @@ Char=characteristics('Euler')
 x,y,t=sym.symbols(['x','y','t'],Real=True)
 rho,u,v,et,p=sym.symbols(['rho','u','v','et','p'],Real=True)
 rhou ,rhov ,rhow ,rhoet = sym.symbols(['rhou' ,'rhov' ,'rhow' ,'rhoet'],Real=True)
-gamma=sym.symbol('gamma')
+gamma=sym.Symbol('gamma')
 rho = sym.Function('rho')(x,y,t)
 u = sym.Function('u')(x,y,t)
 v = sym.Function('v')(x,y,t)
@@ -326,6 +310,120 @@ Q_CS=sym.Matrix([[rho],
                 [rho*et]])
 M=Q_CS.jacobian(Q)
 
+Li_BC_i1_in = Char['xi'][0].copy()
+Li_BC_i1=[]
+for i in Li_BC_i1_in:
+      Li_BC_i1.append(sympy2dNami(i))
+#--> Li_BC_imax[0] = L3 <--#
+#--> Li_BC_imax[1] = L2 <--#
+#--> Li_BC_imax[2] = L1 <--#
+#--> Li_BC_imax[3] = L5 <--#
+#--------------------------#
+#Li_BC_i1[2] = Li_BC_i1[3]        #--->Costant U-velocity at inlet
+Li_BC_i1[3] = '-'+Li_BC_i1[2]        #--->Constant Pressure at inlet  --> L5=-L1
+Li_BC_i1[0] = ' 0.0_wp '          #--->Costant V-velocity at inlet
+Li_BC_i1[1] = ' 0.0_wp '          #--->Costant T          at inlet
+#Li_BC_i1[1] = ' 0.0_wp '         #--->Costant entropy at inlet
+
+##--Physical boundary conditions--##
+
+Src_phyBC['i1'] = { 'rho' : 'Rho0',
+                    'v' : '0.0_wp',
+                    #'T' : 'T0',  
+                    'nut': '0.0_wp'}
+
+D = { 1 : '(1.0_wp/c**2*('+ Li_BC_i1[1]+'0.5_wp*('+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+'))', #0.0_wp
+      2 : '(0.5_wp*( '+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+'))',  #0.0_wp
+      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_i1[3] + ' - ' + Li_BC_i1[2]+'))',
+      4 : Li_BC_i1[0]}
+
+Src_BC_conv_i1 = {   'u'   : 'u*'+D[1]+'+ rho*'+D[3]+'rho*u*( [ v ]_1y )',
+                     'et'  : '0.5_wp*(u**2)*' + D[1]+'+1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' [ (rho*et+p)*v ]_1y'}
+
+
+Src_BC_dif_i1 = {}
+
+Fx = {'u'   : ' - visc_t *( 2.0_wp * deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  ) )',
+      'et'  : ' - kappa*deltaxI*( {T}_1x ) '
+              ' - u*(visc_t *( 2.0_wp *deltaxI*( {u}_1x ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  )))'
+              ' - v*(visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x )))'}
+
+Fy = {'u'   : ' - visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x ))  ',
+      'et'  : ' - kappa*deltayI*( {T}_1y )'
+              ' - u*(visc_t *( deltayI*( {u}_1y ) + deltaxI*( {v}_1x )))'
+              ' - v*(visc_t *( 2.0_wp * deltayI*( {v}_1y ) - 2.0_wp/3.0_wp * ( '+ ddivops +'  )))'}
+
+for key in Fx.keys():
+    Src_BC_dif_i1[key]= 'deltaxI*( [ ' + Fx[key] +' ]_1x )' + ' + ' + 'deltayI *( [ '+ Fy[key]  +' ]_1y ) '
+
+######################################
+#                                    #
+#---Outflow imax, Costant pressure---#  
+#                                    #
+######################################
+
+Li_BC_imax_out     = Char['xi'][0].copy()
+velchar_BC_imaxout  = Char['xi'][1].copy()
+
+Li_BC_imax=[]
+for i in Li_BC_imax_out:
+      Li_BC_imax.append(sympy2dNami(i))
+velchar_BC_imax= []
+for i in velchar_BC_imaxout:
+      velchar_BC_imax.append(sympy2dNami(i))
+
+#--> Li_BC_imax[0] = L3 <--#
+#--> Li_BC_imax[1] = L2 <--#
+#--> Li_BC_imax[2] = L1 <--#
+#--> Li_BC_imax[3] = L5 <--#
+
+Li_BC_imax[2]= '-'+Li_BC_imax[3]  #--->Costant Pressure at the outlet
+
+D = { 1 : '(1.0_wp/c**2*('+ Li_BC_imax[1]+'0.5_wp*('+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+'))',
+      2 : '(0.5_wp*( '+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+'))',  #0.0_wp
+      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_imax[3] + ' - ' + Li_BC_imax[2]+'))',
+      4 : Li_BC_imax[0]}
+
+Src_BC_conv_imax = { 'rho' : Src_conv['rho']+'+'+ D[1],
+                     'u'   : 'u*'+D[1]+'+ rho*'+D[3]+'+ [ rho*u*v ]_1y',
+                     'v'   : 'v*'+D[1]+'+ rho*'+D[4]+'+ [ rho*v*v ]_1y',
+                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+'+1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' [ (rho*et+p)*v ]_1y'}
+
+Src_BC_dif_imax = {}
+for key in Src_dif.keys():
+      Src_BC_dif_imax[key]= Src_dif[key]
+
+######################################
+#                                    #
+#----Outflow jmax, Non reflective----#  
+#                                    #
+######################################
+
+Mi_BC_jmax_sym     = Char['eta'][0].copy()
+velchar_BC_jmaxsym = Char['eta'][1].copy()
+
+Mi_BC_jmax=[]
+for i in Mi_BC_jmax_sym:
+      Mi_BC_jmax.append(sympy2dNami(i))
+velchar_BC_jmax= []
+for i in velchar_BC_jmaxsym:
+      velchar_BC_jmax.append(sympy2dNami(i))
+#Mi_BC_jmax[2]= -Mi_BC_jmax[3]  #--->Costant Pressur at the outlet
+Mi_BC_jmax[2] ='esse*c*(1-M_jmax*M_jmax)/L_ref*( p - P0)'  #---> Non reflective condition
+
+D = { 1 : '(1.0_wp/c**2*('+ Mi_BC_jmax[1]+'0.5_wp*('+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+'))',
+      2 : '(0.5_wp*( '+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+'))',
+      3 : '(1.0_wp/(2*rho*c)*( '+ Mi_BC_jmax[3] + ' - ' + Mi_BC_jmax[2]+'))',
+      4 : Mi_BC_jmax[0]}
+
+Src_BC_conv_jmax = { 'rho' : Src_conv['rho']+'+'+ D[1],
+                     'u'   : 'u*'+D[1]+'+ rho*'+D[3]+'[ rho*u*v ]_1y',
+                     'v'   : 'v*'+D[1]+'+ rho*'+D[4]+'[ rho*v*v ]_1y',
+                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+'+1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' [ (rho*et+p)*v ]_1y'}
+
+Src_BC_dif_jmax = {}
+for key in Src_dif.keys():
+      Src_BC_dif_jmax[key]= Src_dif[key]
 
 
 varbc = { 'u_wall' : {'symb'  : ' u_wall ', 

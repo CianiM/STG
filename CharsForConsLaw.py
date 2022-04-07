@@ -292,5 +292,5 @@ def charspeed_Lis(Atild,Phi):
 
 if __name__ == '__main__':
     # name,fbeg,fend,nstep = sys.argv
-    sym.pprint(characteristics('Euler')['xi'][0])   # Pour tester, j'affiche les Li (pour la direction xi)
+    sym.pprint(characteristics('Euler')['xi'])   # Pour tester, j'affiche les Li (pour la direction xi)
    
