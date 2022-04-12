@@ -12,7 +12,7 @@ coefficients = {'ReI'        : 1,
                 'kappa'      : 2,  
                 'gamma_m1'   : 3,
                 'Cv'         : 4,
-                'Uref'       : 5,
+                'U0'         : 5,
                 'Cb1'        : 6,
                 'Cb2'        : 7,
                 'sigma'      : 8,
@@ -30,7 +30,10 @@ coefficients = {'ReI'        : 1,
                 'L_ref'      : 20,
                 'sut'        : 21,
                 'L'          : 22,
-                'gamma'      : 23
+                'gamma'      : 23,
+                'Rho0'       : 24,
+                'T0'         : 25,
+                'P0'         : 26
                 }
 
 # unknowns to march in time ///////////////////////////////////////////////////
@@ -61,10 +64,10 @@ S =   { 'uv' : ' 0.5_wp*( deltayI*( [u]_1y ) - deltaxI*( [v]_1x ) ) ',
 s= '(( ( '+S['uv'] + ' )**2 + ' + '( '+S['vu'] +' )**2 )*2)**0.5'
 print(s)
 
-varloc       = {'p': 'gamma_m1*rho*(e)',
+varloc       = {'p': '(gamma_m1)*rho*(e)',
                 'e': '(et-0.5_wp*(u*u+v*v))',
                 'chi': '( nut/visc*rho ) ',
-                'visc': '  ( 1 + sut )/( T + sut )*( T )**1.5 ',                #Sutherland's law
+                'visc': '( 1 + sut )/( T + sut )*T**1.5 ',                #Sutherland's law
                 'fv1': '( chi**3/( chi**3 + Cv1**3) )',
                 'nu' : '( nut*fv1 ) ',                                         #Adimensional turbulent viscosity
                 'visc_t' : ' ( visc )*( 1 + fv1*chi )*ReI',                    #Sum of adim dynamic viscosity and turbulent viscosity
@@ -80,7 +83,7 @@ varloc       = {'p': 'gamma_m1*rho*(e)',
                 'wall': 'dabs( 1-symm )',
                 'c'   : '( gamma*p/rho )'}
 
-varstored   = { 'd'  : {'symb' : "eta/L" ,
+varstored   = { 'd'  : {'symb' : "eta" ,
                                  'ind': 1 ,
                                  'static' : True}, # normal distance
                 'eta' : {'symb' : "eta" ,
@@ -265,7 +268,7 @@ for key in Src_BC_Symm_conv.keys():
 Src_BC_Wall={}
 
 Src_BC_Wall_conv = { 'rho' : ' rho*( [v]_1y )*deltayI',
-                     'et'  : ' ( rho*et+p )* ( [v]_1y )*deltayI'}
+                     'et'  : ' ( rho*et +p )* ( [v]_1y )*deltayI'}
 
 Src_BC_Wall_dif = { 'et'  : '- visc_t*( [u]_1y )*( [u]_1y ) - 4.0_wp/3.0_wp*visc_t*( [v]_1y )*( [v]_1y ) - kappa*( [T]_2y )*deltayI**2 \
                              - deltax**2*kappa*( [T]_2x ) '}
@@ -386,10 +389,10 @@ Src_BC_phy_i1 = {   'rho' : 'Rho0',
                     'et'  : 'T0*Cv + 0.5_wp*(U0**2)',  
                     'nut' : '0.0_wp'}
 
-D = { 1 : '(1.0_wp/c**2*('+ Li_BC_i1[1]+'0.5_wp*('+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+'))', #gamma*L1
-      2 : '(0.5_wp*( '+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+'))',                             #L1    
-      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_i1[3] + ' - ' + Li_BC_i1[2]+'))',                  #0.0_wp
-      4 : Li_BC_i1[0]}                                                                     #0.0_wp
+D = { 1 : '( 1.0_wp/c**2*( '+ Li_BC_i1[1]+' + 0.5_wp*( '+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+' )))', #gamma*L1
+      2 : '(0.5_wp*( '+Li_BC_i1[3] + ' + ' + Li_BC_i1[2]+' ))',                             #L1    
+      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_i1[3] + ' - ' + Li_BC_i1[2]+' ))',                  #0.0_wp
+      4 : '( '+Li_BC_i1[0]+' )'}                                                                     #0.0_wp
 
 Src_BC_rhs_i1 = {   'rho' : D[1]+' + [ rho*v ]_1y ' }
 
@@ -435,15 +438,15 @@ for i in velchar_BC_imaxout:
 
 Li_BC_imax[2]= ' - ' + Li_BC_imax[3]  #--->Costant Pressure at the outlet
 
-D = { 1 : '(1.0_wp/c**2*('+ Li_BC_imax[1]+'0.5_wp*('+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+'))',
-      2 : '(0.5_wp*( '+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+'))',  #0.0_wp
-      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_imax[3] + ' - ' + Li_BC_imax[2]+'))',
-      4 : Li_BC_imax[0]}
+D = { 1 : '(1.0_wp/c**2*( '+ Li_BC_imax[1]+' + 0.5_wp*( '+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+' )))',
+      2 : '(0.5_wp*( '+Li_BC_imax[3] + ' + ' + Li_BC_imax[2]+' ))',  #0.0_wp
+      3 : '(1.0_wp/(2*rho*c)*( '+ Li_BC_imax[3] + ' - ' + Li_BC_imax[2]+' ))',
+      4 : '( '+ Li_BC_imax[0]+' )'}
 
 Src_BC_conv_imax = { 'rho' : Src_conv['rho']+'+'+ D[1],
                      'u'   : 'u*'+D[1]+'+ rho*'+D[3]+'+ [ rho*u*v ]_1y',
                      'v'   : 'v*'+D[1]+'+ rho*'+D[4]+'+ [ rho*v*v ]_1y',
-                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+'+1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' [ (rho*et+p)*v ]_1y'}
+                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+' + 1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+' + rho*v*'+D[4]+' + [ (rho*et+p)*v ]_1y'}
 
 Src_BC_dif_imax = {}
 for key in Src_dif.keys():
@@ -475,15 +478,15 @@ for i in velchar_BC_jmaxsym:
 #Mi_BC_jmax[2]= -Mi_BC_jmax[3]  #--->Costant Pressur at the outlet
 Mi_BC_jmax[2] ='esse*c*(1-M_jmax*M_jmax)/L_ref*( p - P0)'  #---> Non reflective condition
 
-D = { 1 : '(1.0_wp/c**2*('+ Mi_BC_jmax[1]+'0.5_wp*( '+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+' ))',
-      2 : '(0.5_wp*( '+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+'))',
+D = { 1 : '(1.0_wp/c**2*('+ Mi_BC_jmax[1]+' + 0.5_wp*( '+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+' ))',
+      2 : '(0.5_wp*( '+Mi_BC_jmax[3] + ' + ' + Mi_BC_jmax[2]+' ))',
       3 : '(1.0_wp/(2*rho*c)*( '+ Mi_BC_jmax[3] + ' - ' + Mi_BC_jmax[2]+' ))',
-      4 : Mi_BC_jmax[0]}
+      4 : '('+Mi_BC_jmax[0]+')'}
 
 Src_BC_conv_jmax = { 'rho' : Src_conv['rho']+'+'+ D[1],
-                     'u'   : 'u*'+D[1]+'+ rho*'+D[3]+'[ rho*u*v ]_1y',
-                     'v'   : 'v*'+D[1]+'+ rho*'+D[4]+'[ rho*v*v ]_1y',
-                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+'+1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' [ (rho*et+p)*v ]_1y'}
+                     'u'   : 'u*'+D[1]+'+ rho*'+D[3]+' + [ rho*u*v ]_1y',
+                     'v'   : 'v*'+D[1]+'+ rho*'+D[4]+' + [ rho*v*v ]_1y',
+                     'et'  : '0.5_wp*(u**2+v**2)*'+D[1]+' + 1.0_wp/gamma_m1*'+D[2]+'+rho*u*'+D[3]+'+rho*v*'+D[4]+' + [ (rho*et+p)*v ]_1y'}
 
 Src_BC_dif_jmax = {}
 for key in Src_dif.keys():
